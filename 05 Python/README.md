@@ -315,7 +315,54 @@ before dividing, rather than relying on pandas' default behavior.
 original hardcoded universe - swapping `dashboard.py` to load from a
 universe file too is a small follow-up, not built yet.
 
-## Next: Sprint 9
+## Sprint 9 (lightweight) — Position Sizing & Trade Journal
+
+Built as a minimal slice, not the full Sprint 10 portfolio management -
+enough to make paper trading test your actual rules rather than your
+gut feel about how much to buy.
+
+**`alpha/position_sizing.py`** — `calculate_position_size()` sizes a
+position so a stop-loss hit costs exactly `config.risk_per_trade`
+(1% default) of account size, capped by `config.max_position_pct`
+(20% default) so a very tight stop can't size you into an oversized
+position. Validates direction against stop-loss placement (long
+requires stop below entry, short requires stop above) and raises
+clear errors rather than producing a silently wrong number - a sizing
+bug is exactly the kind of thing that shouldn't fail quietly.
+
+**`alpha/trade_journal.py`** — a plain CSV journal: `log_trade_open()`
+appends a row and returns a `trade_id`, `log_trade_close()` records
+the exit and computes the trade's return, `summarize_journal()` gives
+win rate / profit factor / expectancy on closed trades. That summary
+function reuses the exact same `calculate_win_rate()`,
+`calculate_profit_factor()`, and `calculate_expectancy()` from
+`alpha/analytics.py` used for backtests - a closed paper trade has the
+same shape (a `return` column) as a reconstructed backtest trade, so
+there's no separate stats logic to maintain.
+
+`notebooks/Sprint09_Paper_Trading.ipynb` ties it together: scan for
+opportunities, size a position by hand-entering your stop-loss, log
+it, and a separate cell for closing trades later.
+
+**Explicitly NOT covered** (this is the "lightweight" part, full
+version is still Sprint 10): sector exposure tracking, cash allocation
+across multiple simultaneous positions, correlation between holdings,
+automated stop-loss placement. `max_position_pct` is a blunt per-
+position safety cap, not portfolio-level risk management.
+
+**Bugs found and fixed while building this:** the trade journal hit a
+pandas dtype trap twice - an all-empty CSV column (`date_closed`
+before any trade closes) gets inferred as `float64` on read, which
+then rejects a string write later. Fixed by forcing every column to
+load as plain string (`dtype=str, keep_default_na=False`), then
+explicitly stringifying values written back in.
+
+**Note on the journal file itself:** `paper_trading/journal.csv` is
+in `.gitignore` by default, since it's personal data that changes
+with every trade rather than source code. Remove that line from
+`.gitignore` if you'd rather git track it as a personal audit trail.
+
+## Next: Sprint 10
 
 Paper Trading — a daily decision process without risking money. This
 is where the scanner's output turns into an actual routine you follow,

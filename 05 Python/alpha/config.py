@@ -50,10 +50,14 @@ class Config:
     risk_free_rate: float = 0.0
 
     # Scanning/risk: your target risk per trade, as a fraction of
-    # portfolio value. Informational at this stage - the scanner
-    # references it but doesn't yet size positions with it. Real
-    # position sizing against this number is Sprint 10's job.
+    # portfolio value.
     risk_per_trade: float = 0.01
+
+    # Position sizing safety cap: no single position should exceed
+    # this fraction of account value, regardless of what the risk
+    # calculation alone would allow. Stops a very tight stop-loss from
+    # sizing you into an oversized position.
+    max_position_pct: float = 0.20
 
     universe: List[str] = field(default_factory=lambda: [
         "AAPL",

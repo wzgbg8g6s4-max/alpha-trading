@@ -10,6 +10,6 @@ Thumbs.db
 ~$*.docx
 *.tmp
 .vscode/
-
 *.zip
 desktop.ini
+**/paper_trading/*.csv
