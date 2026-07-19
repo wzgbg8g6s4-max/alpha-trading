@@ -26,6 +26,7 @@ once any kind of parameter selection gets added.
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 from .config import Config, DEFAULT_CONFIG
@@ -56,8 +57,15 @@ def calculate_weights(positions: pd.DataFrame) -> pd.DataFrame:
     """
     Equal weight across whatever's held each period. Months with zero
     holdings get zero weight everywhere rather than dividing by zero.
+
+    holdings_count is explicitly floated and zeros replaced with NaN
+    before dividing - on small universes pandas quietly produces NaN
+    for a 0/0 anyway, but on larger ones (tested with ~90 tickers)
+    pandas can switch to a different internal engine that raises a
+    real ZeroDivisionError instead. Doing the replacement explicitly
+    avoids depending on which engine pandas happens to pick.
     """
-    holdings_count = positions.sum(axis=1)
+    holdings_count = positions.sum(axis=1).astype(float).replace(0, np.nan)
     weights = positions.div(holdings_count, axis=0)
     return weights.fillna(0.0)
 

@@ -273,6 +273,48 @@ moving a slider doesn't trigger a fresh Yahoo Finance download every
 time — only the parts that actually depend on the changed setting
 rerun.
 
+## Expanding the universe (e.g. to FTSE 100)
+
+**`alpha/universes.py`** — `load_universe(path)` reads a ticker list
+from a plain text/CSV file instead of needing to hardcode a Python
+list in `config.py`. Edit the file to change what's monitored, no code
+changes needed.
+
+**`universes/ftse100.csv`** — a starting-point FTSE 100 ticker list
+(Yahoo Finance `.L` suffix format). **Read the comment header in that
+file before using it** — FTSE Russell reviews constituents quarterly,
+this list was built from training data with a cutoff, and it's ~89
+names rather than the full 100 (left incomplete deliberately rather
+than guessing at ones I wasn't confident about). Verify it against
+londonstockexchange.com or FTSE Russell's factsheet before relying on
+it for anything real, then just edit the CSV directly.
+
+`notebooks/Sprint08b_FTSE100_Universe.ipynb` shows the full pattern:
+load the file, build a `Config` with the new universe, remember to
+also change `regime_benchmark` to `"^FTSE"` (SPY tracks the S&P 500,
+not relevant here), and bump `top_stocks` up from the default 3 -
+holding only 3 out of 90 names is a much more concentrated bet than
+holding 3 out of 10.
+
+**Currency note:** every calculation in this package works on
+percentage returns, so mixing currencies doesn't break the math - but
+if you ever combine US and UK tickers in one universe, you're
+implicitly taking on GBP/USD exchange rate risk that nothing here
+currently adjusts for. Running FTSE 100 on its own sidesteps this.
+
+**Bug found and fixed while testing this:** `calculate_weights()` in
+`alpha/backtest.py` could raise a `ZeroDivisionError` on months with
+zero holdings - but only on larger universes (~90+ tickers), because
+pandas switches to a different internal calculation engine above a
+certain size threshold that handles zero-division differently than it
+does for small DataFrames. Never showed up with the original 10-stock
+universe. Fixed by explicitly replacing zero holding-counts with NaN
+before dividing, rather than relying on pandas' default behavior.
+
+**Not yet done:** the dashboard's sidebar still only knows about the
+original hardcoded universe - swapping `dashboard.py` to load from a
+universe file too is a small follow-up, not built yet.
+
 ## Next: Sprint 9
 
 Paper Trading — a daily decision process without risking money. This
