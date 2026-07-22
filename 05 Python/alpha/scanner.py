@@ -40,6 +40,7 @@ def scan_as_of(
     regime: Optional[pd.Series] = None,
     config: Config = DEFAULT_CONFIG,
     registry: List[Tuple[str, Callable, Callable]] = STRATEGY_REGISTRY,
+    daily_prices: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """
     Score every ticker by how many strategies flag it for a given
@@ -51,10 +52,19 @@ def scan_as_of(
     trade you'd have already taken. Don't feed scanner output straight
     into build_portfolio()/run_backtest() without shifting it yourself.
 
+    daily_prices is optional - pass the DAILY (not monthly) prices
+    DataFrame from get_prices() to add last_close and price_date
+    columns showing each ticker's most recent closing price. The
+    scanner's signals are all computed on monthly-resampled prices, so
+    this is deliberately a separate, optional input rather than
+    something derived from monthly_prices, which wouldn't have a
+    genuine "yesterday's close" in it.
+
     Returns a DataFrame with one row per ticker/direction that had at
     least one strategy flag it, columns: as_of, ticker, direction,
-    score, strategies, conflicting_signal. Empty DataFrame if nothing
-    was flagged.
+    score, strategies, conflicting_signal, and (if daily_prices was
+    given) last_close, price_date. Empty DataFrame if nothing was
+    flagged.
     """
     long_hits: Dict[str, List[str]] = {}
     short_hits: Dict[str, List[str]] = {}
@@ -107,6 +117,36 @@ def scan_as_of(
     ).reset_index(drop=True)
     opportunities.insert(0, "as_of", as_of)
 
+    if daily_prices is not None:
+        opportunities = attach_latest_prices(opportunities, daily_prices)
+
+    return opportunities
+
+
+def attach_latest_prices(
+    opportunities: pd.DataFrame,
+    daily_prices: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Add last_close and price_date columns to a scan result, using the
+    most recent valid (non-NaN) daily price per ticker.
+
+    Looked up per-ticker rather than just taking the last row of
+    daily_prices, because different exchanges close on different
+    holidays - e.g. a US ticker and a FTSE ticker in the same universe
+    can genuinely have different "most recent" dates. Using
+    .last_valid_index() per column handles that correctly instead of
+    assuming every ticker's last row is equally current.
+    """
+    if opportunities.empty:
+        return opportunities
+
+    last_valid_dates = daily_prices.apply(lambda col: col.last_valid_index())
+    last_closes = daily_prices.apply(lambda col: col.loc[col.last_valid_index()] if col.last_valid_index() is not None else None)
+
+    opportunities = opportunities.copy()
+    opportunities["last_close"] = opportunities["ticker"].map(last_closes)
+    opportunities["price_date"] = opportunities["ticker"].map(last_valid_dates)
     return opportunities
 
 
@@ -115,12 +155,15 @@ def scan_latest(
     regime: Optional[pd.Series] = None,
     config: Config = DEFAULT_CONFIG,
     registry: List[Tuple[str, Callable, Callable]] = STRATEGY_REGISTRY,
+    daily_prices: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """
     Convenience wrapper: scan_as_of() using the most recent month
-    available in monthly_prices.
+    available in monthly_prices. Pass daily_prices (from get_prices())
+    to include last_close / price_date columns - see scan_as_of() for
+    details.
     """
-    return scan_as_of(monthly_prices, monthly_prices.index[-1], regime, config, registry)
+    return scan_as_of(monthly_prices, monthly_prices.index[-1], regime, config, registry, daily_prices)
 
 
 def flag_conflicts(opportunities: pd.DataFrame) -> pd.DataFrame:

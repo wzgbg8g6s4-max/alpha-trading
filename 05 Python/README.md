@@ -448,6 +448,66 @@ flag: be deliberate about which one you're doing, and stay consistent
 across trades - otherwise your paper trading results won't cleanly
 tell you anything about either approach.
 
+## Multi-period backtest comparison (2020 / 2015 / 2010)
+
+`notebooks/Sprint06b_Multi_Period_Comparison.ipynb` — runs all four
+strategies across three different `start_date` values and compares
+CAGR, Sharpe, drawdown, etc. side by side. Change `config.start_date`
+to test any period; this notebook just does it for three at once.
+
+**Read the survivorship bias note at the top of that notebook before
+trusting the 2010 numbers.** `config.universe` is today's stock list -
+testing back to 2010 asks "would today's AAPL/MSFT/etc. have done well
+since 2010", which quietly excludes any company that existed then but
+has since gone bankrupt or been delisted. That inflates results. This
+isn't a bug to fix - it's inherent to testing today's tickers in the
+past, and no amount of code changes it. What the comparison IS
+genuinely useful for: seeing whether a strategy's numbers stay roughly
+stable as you extend the window, or fall apart once you add years it
+wasn't implicitly "tuned" against.
+
+The notebook also includes a **data coverage check** - for each
+period, it shows when each ticker's data actually starts. yfinance
+doesn't error if a ticker doesn't have data back to your requested
+`start_date` (e.g. a stock that IPO'd later); it just silently returns
+data starting wherever it exists. Tested this directly with a
+simulated IPO gap to confirm the coverage check actually surfaces it
+rather than hiding it - worth reading that output, not skipping past it.
+
+## Scanner now shows last closing price
+
+You asked whether any table actually shows a stock's closing price -
+honest answer at the time was no. Fixed: `scan_as_of()` and
+`scan_latest()` now take an optional `daily_prices` argument (the
+DAILY prices from `get_prices()`, not the monthly-resampled prices the
+rest of the scanner works on) and add two columns to the result:
+`last_close` and `price_date`.
+
+**`alpha/scanner.py`: `attach_latest_prices()`** looks up each
+ticker's own most recent valid price individually, rather than
+assuming every ticker's last row is equally current. This matters for
+real reasons, not just correctness for its own sake - US and UK
+exchanges close on different holidays, and if you ever mix universes
+(e.g. combining the default universe with FTSE 100 tickers), different
+tickers can genuinely have different "most recent" dates. Tested this
+directly with a simulated mixed-exchange gap to confirm each ticker
+shows its own correct last-traded date, not a shared or wrong one.
+
+**Wired through everywhere the scanner is called:**
+`Sprint07_Scanning_Engine.ipynb`, `Sprint09_Paper_Trading.ipynb`, and
+`dashboard_data.py` (which was silently discarding the daily `prices`
+DataFrame after resampling to monthly - now kept and passed through).
+The dashboard's scan table picks up the new columns automatically,
+no dashboard.py changes needed.
+
+**Also improved:** `Sprint09_Paper_Trading.ipynb`'s sizing cell now
+pre-fills `ENTRY_PRICE` from the scan's `last_close` for whichever
+ticker you pick, instead of a hardcoded placeholder number - one less
+thing to manually copy over. Worth reading the printed `price_date`
+though: it's the most recent *closing* price, not necessarily what
+you'd actually pay placing an order right now if the market's moved
+since then.
+
 ## Next: Sprint 10
 
 Paper Trading — a daily decision process without risking money. This

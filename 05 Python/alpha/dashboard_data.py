@@ -46,6 +46,7 @@ def load_market_data(config: Config = DEFAULT_CONFIG) -> Dict:
     regime = calculate_regime(monthly_benchmark, config)
 
     return {
+        "prices": prices,
         "monthly_prices": monthly_prices,
         "monthly_returns": monthly_returns,
         "regime": regime,
@@ -115,4 +116,9 @@ def get_current_scan(market_data: Dict, config: Config = DEFAULT_CONFIG) -> pd.D
     Thin wrapper around scanner.scan_latest() using already-loaded
     market data, so the dashboard doesn't re-download anything.
     """
-    return scan_latest(market_data["monthly_prices"], market_data["regime"], config)
+    return scan_latest(
+        market_data["monthly_prices"],
+        market_data["regime"],
+        config,
+        daily_prices=market_data["prices"],
+    )
