@@ -17,6 +17,12 @@ from .config import Config, DEFAULT_CONFIG
 def get_prices(config: Config = DEFAULT_CONFIG) -> pd.DataFrame:
     """
     Download daily closing prices for the configured universe.
+
+    config.end_date=None (the default) is passed straight through as
+    end=None to yfinance, which is yfinance's own default meaning "no
+    end limit, download up to today". Don't replace None with a
+    computed date string here - that would just reintroduce a fixed
+    cutoff at whatever moment this code happened to run.
     """
     prices = yf.download(
         config.universe,

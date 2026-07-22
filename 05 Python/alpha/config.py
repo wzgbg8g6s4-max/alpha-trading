@@ -8,13 +8,21 @@ windows without editing function bodies.
 """
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Optional, Tuple
 
 
-@dataclass
+@dataclass(frozen=True)
 class Config:
     start_date: str = "2020-01-01"
-    end_date: str = "2025-01-01"
+
+    # None means "up to today" - resolved at download time in
+    # data.py, not fixed here. This used to be a hardcoded date
+    # ("2025-01-01") inherited from the very first notebook, which
+    # meant every download silently stopped at that date forever,
+    # regardless of when the code actually ran. Leave this as None
+    # unless you deliberately want to freeze a backtest at a specific
+    # historical cutoff (e.g. for reproducing a past result).
+    end_date: Optional[str] = None
 
     lookback_days: int = 252
     lookback_months: int = 12
@@ -59,7 +67,7 @@ class Config:
     # sizing you into an oversized position.
     max_position_pct: float = 0.20
 
-    universe: List[str] = field(default_factory=lambda: [
+    universe: Tuple[str, ...] = field(default_factory=lambda: (
         "AAPL",
         "MSFT",
         "AMZN",
@@ -70,7 +78,17 @@ class Config:
         "JPM",
         "V",
         "KO",
-    ])
+    ))
+
+    def __post_init__(self):
+        # Config is frozen so top-level attributes can't be
+        # reassigned, but a list held by one of those attributes could
+        # still be mutated in place (config.universe.append(...))
+        # unless the attribute itself is immutable. Converting to a
+        # tuple here closes that gap regardless of whether a list or
+        # tuple was passed in - e.g. universes.load_universe() returns
+        # a plain list, and this normalizes it automatically.
+        object.__setattr__(self, "universe", tuple(self.universe))
 
 
 # Import this directly for the common case. Pass a different Config

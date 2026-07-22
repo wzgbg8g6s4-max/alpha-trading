@@ -64,15 +64,29 @@ def log_trade_open(
     direction: str,
     strategy: str,
     entry_price: float,
-    stop_loss: float,
     shares: int,
     account_size: float,
+    risk_amount: float,
+    stop_loss: Optional[float] = None,
     notes: str = "",
     date_opened: Optional[str] = None,
 ) -> str:
     """
     Append a new open trade to the journal. Returns the trade_id so
     you can reference it later when closing the trade - hang onto it.
+
+    stop_loss is optional - leave it as None for a rebalance-only
+    trade with no hard exit order (see
+    position_sizing.calculate_position_size_rebalance_only). When
+    stop_loss is None, it's recorded as blank in the journal rather
+    than a misleading number - there is no actual exit order at that
+    price, and nothing in this codebase will close the trade
+    automatically.
+
+    risk_amount is passed in directly rather than computed here, since
+    it depends on which sizing function you used
+    (calculate_position_size vs calculate_position_size_rebalance_only)
+    - pass through PositionSize.risk_amount from whichever one you called.
     """
     if direction not in ("long", "short"):
         raise ValueError("direction must be 'long' or 'short'")
@@ -80,7 +94,6 @@ def log_trade_open(
     journal = load_journal(path)
 
     trade_id = f"{ticker}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    risk_amount = abs(entry_price - stop_loss) * shares
 
     new_row = {
         "trade_id": trade_id,
@@ -89,7 +102,7 @@ def log_trade_open(
         "direction": direction,
         "strategy": strategy,
         "entry_price": entry_price,
-        "stop_loss": stop_loss,
+        "stop_loss": "" if stop_loss is None else stop_loss,
         "shares": shares,
         "risk_amount": risk_amount,
         "account_size": account_size,

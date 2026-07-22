@@ -1,0 +1,105 @@
+# FTSE 100 constituents, Yahoo Finance tickers (.L suffix = London Stock Exchange)
+#
+# IMPORTANT: this is a starting point built from training data, NOT a
+# live feed. FTSE Russell reviews and updates FTSE 100 constituents
+# every quarter (March, June, September, December) - companies get
+# added and removed. This list may already be out of date by the time
+# you're reading it, and some entries may be wrong (delisted, merged,
+# moved primary listing elsewhere, ticker changed).
+#
+# Before using this for anything real: cross-check against an
+# authoritative live source, e.g.:
+#   - londonstockexchange.com (official FTSE 100 constituent list)
+#   - FTSE Russell's published factsheet (ftserussell.com)
+#   - your broker's index constituent data
+#
+# Once verified, just edit this file directly - no code changes needed.
+III.L,3i Group
+ADM.L,Admiral Group
+AAL.L,Anglo American
+ANTO.L,Antofagasta
+AHT.L,Ashtead Group
+ABF.L,Associated British Foods
+AZN.L,AstraZeneca
+AUTO.L,Auto Trader Group
+AV.L,Aviva
+BME.L,B&M European Value Retail
+BA.L,BAE Systems
+BARC.L,Barclays
+BEZ.L,Beazley
+BKG.L,Berkeley Group Holdings
+BP.L,BP
+BATS.L,British American Tobacco
+BT-A.L,BT Group
+BNZL.L,Bunzl
+BRBY.L,Burberry Group
+CNA.L,Centrica
+CCH.L,Coca-Cola HBC
+CPG.L,Compass Group
+CTEC.L,Convatec Group
+CRDA.L,Croda International
+DCC.L,DCC plc
+DGE.L,Diageo
+DPLM.L,Diploma
+EDV.L,Endeavour Mining
+ENT.L,Entain
+EXPN.L,Experian
+FCIT.L,F&C Investment Trust
+FRES.L,Fresnillo
+GSK.L,GSK
+GLEN.L,Glencore
+HLN.L,Haleon
+HLMA.L,Halma
+HIK.L,Hikma Pharmaceuticals
+HSBA.L,HSBC Holdings
+IAG.L,International Consolidated Airlines Group
+IMB.L,Imperial Brands
+INF.L,Informa
+IHG.L,InterContinental Hotels Group
+ICG.L,Intermediate Capital Group
+JD.L,JD Sports Fashion
+KGF.L,Kingfisher
+LAND.L,Land Securities Group
+LGEN.L,Legal & General Group
+LLOY.L,Lloyds Banking Group
+LMP.L,LondonMetric Property
+LSEG.L,London Stock Exchange Group
+MNG.L,M&G plc
+MKS.L,Marks & Spencer Group
+MRO.L,Melrose Industries
+MNDI.L,Mondi
+NG.L,National Grid
+NWG.L,NatWest Group
+NXT.L,Next plc
+PSON.L,Pearson
+PSH.L,Pershing Square Holdings
+PSN.L,Persimmon
+PHNX.L,Phoenix Group Holdings
+PRU.L,Prudential
+RKT.L,Reckitt Benckiser Group
+REL.L,RELX
+RTO.L,Rentokil Initial
+RMV.L,Rightmove
+RIO.L,Rio Tinto
+RR.L,Rolls-Royce Holdings
+SGE.L,Sage Group
+SBRY.L,Sainsbury's (J)
+SDR.L,Schroders
+SMT.L,Scottish Mortgage Investment Trust
+SGRO.L,Segro
+SVT.L,Severn Trent
+SHEL.L,Shell
+SN.L,Smith & Nephew
+SMIN.L,Smiths Group
+SPX.L,Spirax Group
+SSE.L,SSE
+STAN.L,Standard Chartered
+STJ.L,St James's Place
+TW.L,Taylor Wimpey
+TSCO.L,Tesco
+ULVR.L,Unilever
+UU.L,United Utilities Group
+VOD.L,Vodafone Group
+WEIR.L,Weir Group
+WTB.L,Whitbread
+WPP.L,WPP

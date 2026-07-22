@@ -362,6 +362,92 @@ in `.gitignore` by default, since it's personal data that changes
 with every trade rather than source code. Remove that line from
 `.gitignore` if you'd rather git track it as a personal audit trail.
 
+## Bugfix — stale end_date
+
+`Config.end_date` was hardcoded to `"2025-01-01"` all the way back
+from the very first notebook, before any of the sprints built since.
+Every price download silently stopped at that date regardless of when
+the code actually ran - meaning every scan and backtest has been
+missing everything since then without any error or warning.
+
+Fixed: `end_date` now defaults to `None`, which yfinance itself treats
+as "no end limit, download up to today" (confirmed against yfinance's
+own function signature, where `end=None` is its built-in default). You
+can still pass an explicit `end_date` string to `Config(...)` when you
+deliberately want to freeze a backtest at a specific historical
+cutoff - e.g. reproducing a past result - that override path still
+works exactly as before.
+
+## Hardening — Config is now immutable
+
+You asked a good question about `config` vs `DEFAULT_CONFIG` naming
+that turned up a real latent risk worth closing, even though nothing
+currently exploited it. `config = DEFAULT_CONFIG` doesn't copy the
+object - it's the same object with two names. Nothing in the codebase
+mutates a config's attributes directly, but if any future code ever
+did (`config.top_stocks = 5` instead of building a new `Config(...)`),
+it would silently corrupt the shared default for every other notebook
+and cell using it in that session.
+
+Fixed two ways:
+
+- `Config` is now `@dataclass(frozen=True)` - attempting to reassign
+  any field (`config.top_stocks = 5`) now raises `FrozenInstanceError`
+  immediately, rather than silently succeeding and corrupting shared
+  state.
+- `universe` is now stored as a tuple, not a list, normalized
+  automatically in `__post_init__` regardless of whether you pass a
+  list or tuple in. This closes a second gap frozen dataclasses don't
+  cover on their own - freezing blocks reassigning `config.universe`,
+  but wouldn't have stopped `config.universe.append(...)` mutating the
+  list in place. Tuples have no `.append()`, so that's closed too.
+
+To make a modified copy of a config, use `dataclasses.replace(config,
+top_stocks=15)` (the standard pattern for frozen dataclasses) or build
+a fresh `Config(...)` - both tested and working. The
+dict-unpacking trick used in `Sprint05_Backtesting_Engine.ipynb`
+(`Config(**{**config.__dict__, ...})`) still works too.
+
+## Rebalance-only position sizing (no hard stop-loss)
+
+You asked a sharp question: do you actually need a stop-loss for
+paper trading? Worth answering honestly - no, not necessarily, and
+there's a real mismatch worth knowing about if you use one.
+
+**The backtests never used a stop-loss.** `run_backtest()` holds a
+position until the next monthly rebalance drops it out of the
+strategy's signal - that's the whole exit mechanism, for every
+strategy. If you paper trade with a real stop-loss order, you're
+testing a different system than the one the Sprint 5-6 performance
+numbers describe.
+
+**`calculate_position_size_rebalance_only()`** (new, in
+`alpha/position_sizing.py`) sizes a position the same 1%-of-account
+way, but against an *assumed adverse move* (default 8%) instead of a
+real stop-loss price. This isn't an exit order - nothing closes the
+trade automatically if the price moves that much. It's purely a risk
+buffer for sizing purposes, matching how the strategies were actually
+tested: hold until next rebalance, whatever the price does in between.
+
+The original `calculate_position_size()` (real stop-loss) is still
+there and still works exactly as before - both share the same
+underlying risk-target and max-position-cap logic internally, just
+fed a different "risk per share" depending on which one you use.
+
+**`alpha/trade_journal.py`** updated to match: `stop_loss` is now
+optional in `log_trade_open()` - pass `None` for a rebalance-only
+trade, and the journal records it as blank rather than a misleading
+number. `risk_amount` is now passed in explicitly (from whichever
+sizing function's `PositionSize.risk_amount` you used) rather than
+computed from a stop price that might not exist.
+
+`Sprint09_Paper_Trading.ipynb` now defaults to rebalance-only sizing,
+with the stop-loss version available as a clearly marked, commented-
+out alternative. Whichever you pick, the notebook and README both
+flag: be deliberate about which one you're doing, and stay consistent
+across trades - otherwise your paper trading results won't cleanly
+tell you anything about either approach.
+
 ## Next: Sprint 10
 
 Paper Trading — a daily decision process without risking money. This
